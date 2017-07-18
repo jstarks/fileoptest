@@ -4,12 +4,14 @@
 #include <fcntl.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 
-const int fileCount = 100000;
+const int defaultFileCount = 500000;
+const int filesPerDirectory = 1000;
 
 _Noreturn void usage()
 {
-    fprintf(stderr, "test [-nochdir] <create | open | stat | unlink> <path>\n");
+    fprintf(stderr, "test [-nochdir] <create | open | stat | unlink> <path> [count]\n");
     exit(100);
 }
 
@@ -59,6 +61,14 @@ int main(int argc, char **argv)
 
     argn++;
     const char *dirName = argv[argn];
+    argn++;
+
+    int fileCount = defaultFileCount;
+    if (argn < argc)
+    {
+        fileCount = atoi(argv[argn]);
+        argn++;
+    }
 
     if (mode == modeCreate)
     {
@@ -84,14 +94,18 @@ int main(int argc, char **argv)
 
     for (int i = 0; i < fileCount; i++)
     {
+        int di = i / filesPerDirectory;
+        char dn[2048];
         char fn[2048];
         if (nochdir)
         {
-            snprintf(fn, 2048, "%s/%d", dirName, i);
+            snprintf(dn, 2048, "%s/%d", dirName, di);
+            snprintf(fn, 2048, "%s/%d/%d", dirName, di, i);
         }
         else
         {
-            snprintf(fn, 2048, "%d", i);
+            snprintf(dn, 2048, "%d", di);
+            snprintf(fn, 2048, "%d/%d", di, i);
         }
 
         if (mode == modeStat)
@@ -110,12 +124,29 @@ int main(int argc, char **argv)
                 perror("unlink");
                 return 1;
             }
+
+            if (i % filesPerDirectory == filesPerDirectory - 1 || i == fileCount - 1)
+            {
+                if (rmdir(dn) < 0)
+                {
+                    perror("rmdir");
+                    return 1;
+                }
+            }
         }
         else
         {
             int oflag = 0;
             if (mode == modeCreate)
             {
+                if (i % filesPerDirectory == 0)
+                {
+                    if (mkdir(dn, 0777) < 0)
+                    {
+                        perror("mkdir");
+                        return 1;
+                    }
+                }
                 oflag |= O_CREAT;
             }
             int fd = open(fn, oflag, 0666);
