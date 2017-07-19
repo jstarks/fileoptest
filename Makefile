@@ -1,7 +1,7 @@
 TESTDIR=testdir
 
 fileoptest : fileoptest.c
-	cc -O2 -Wall fileoptest.c -o fileoptest
+	$(CC) -O2 -Wall fileoptest.c -o fileoptest
 
 test : fileoptest
 	time ./fileoptest create $(TESTDIR) 50000

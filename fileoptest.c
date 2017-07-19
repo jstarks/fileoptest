@@ -6,6 +6,10 @@
 #include <string.h>
 #include <errno.h>
 
+#ifdef WIN32
+#define mkdir(x, y) mkdir(x)
+#endif
+
 const int defaultFileCount = 500000;
 const int filesPerDirectory = 1000;
 
@@ -79,10 +83,10 @@ int main(int argc, char **argv)
         }
     }
 
-    int cwd = open(".", 0);
-    if (cwd < 0)
+    char cwd[2048];
+    if (getcwd(cwd, sizeof(cwd)) == NULL)
     {
-        perror("open .");
+        perror("getcwd");
         return 1;
     }
 
@@ -162,7 +166,7 @@ int main(int argc, char **argv)
 
     if (mode == modeUnlink)
     {
-        if (fchdir(cwd) < 0)
+        if (chdir(cwd) < 0)
         {
             perror("fchdir");
             return 1;
