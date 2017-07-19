@@ -7,7 +7,45 @@
 #include <errno.h>
 
 #ifdef WIN32
+#include <windows.h>
+
+int open_win32(const char *path, int flags, int mode)
+{
+    UNREFERENCED_PARAMETER(mode);
+
+    DWORD createDisposition = OPEN_EXISTING;
+    if (flags & O_CREAT)
+    {
+        createDisposition = CREATE_NEW;
+    }
+
+    HANDLE h = CreateFileA(path, GENERIC_READ, 0, NULL, createDisposition, 0, NULL);
+    if (h == INVALID_HANDLE_VALUE)
+    {
+        errno = EFAULT;
+        return -1;
+    }
+
+    return (int)(LONG_PTR)h;
+}
+
+int close_win32(int fd)
+{
+    CloseHandle((HANDLE)(LONG_PTR)fd);
+    return 0;
+}
+
+int stat_win32(const char *path, struct stat *buf)
+{
+    UNREFERENCED_PARAMETER(path);
+    UNREFERENCED_PARAMETER(buf);
+    return 0;
+}
+
 #define mkdir(x, y) mkdir(x)
+#define open(x, y, z) open_win32(x, y, z)
+#define close(x) close_win32(x)
+#define stat(x, y) stat_win32(x, y)
 #endif
 
 const int defaultFileCount = 500000;
